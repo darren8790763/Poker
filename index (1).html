@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>♠ Poker Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{--acc:#c8a96e;--grn:#15803d;--grn-bg:#dcfce7;--red:#dc2626;--red-bg:#fee2e2;--bg:#f2f2f7;--card:#ffffff;--bor:#e5e7eb;--txt:#111827;--mut:#6b7280;--sub:#9ca3af}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;max-width:480px;margin:0 auto}
+.topbar{background:#0a0a0f;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.logo{color:var(--acc);font-size:16px;font-weight:800}
+.logo-sub{color:#4b5563;font-size:9px;letter-spacing:.1em;margin-top:1px}
+.tabs{display:flex;background:#fff;border-bottom:1px solid var(--bor);position:sticky;top:56px;z-index:9}
+.tab{flex:1;text-align:center;padding:12px 4px;font-size:13px;font-weight:600;color:var(--mut);cursor:pointer;border-bottom:2px solid transparent}
+.tab.on{color:var(--txt);border-bottom-color:var(--txt)}
+.content{padding:16px;padding-bottom:100px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border-radius:14px;padding:14px;border:1px solid var(--bor)}
+.sl{font-size:10px;color:var(--mut);margin-bottom:4px;letter-spacing:.05em;font-weight:500}
+.sv{font-size:22px;font-weight:700;font-family:ui-monospace,monospace}
+.pos{color:var(--grn)}.neg{color:var(--red)}.acc{color:#92400e}.neu{color:var(--txt)}
+.card{background:var(--card);border-radius:14px;padding:14px;margin-bottom:12px;border:1px solid var(--bor)}
+.ct{font-size:11px;font-weight:600;color:var(--mut);letter-spacing:.06em;margin-bottom:10px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6}
+.srow:last-child{border-bottom:none}
+.sv2{font-size:15px;font-weight:600;margin-bottom:2px}
+.sd{font-size:11px;color:var(--mut)}
+.spnl{font-size:16px;font-weight:700;font-family:ui-monospace,monospace;text-align:right;flex-shrink:0;margin-left:12px}
+.bars{display:flex;align-items:flex-end;gap:5px;height:70px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%}
+.bw{flex:1;display:flex;align-items:flex-end;width:100%}
+.bar{width:100%;border-radius:3px 3px 0 0;min-height:3px}
+.bl{font-size:9px;color:var(--sub)}
+.fab{position:fixed;bottom:24px;right:16px;left:16px;max-width:448px;margin:0 auto}
+.fab-btn{width:100%;background:#0a0a0f;color:var(--acc);border:none;border-radius:14px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.02em}
+.av{width:32px;height:32px;border-radius:50%;background:#ede9fe;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#5b21b6;flex-shrink:0}
+.av.gold{background:#fef3c7;color:#92400e}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;margin:2px}
+.badge-g{background:var(--grn-bg);color:#166534}
+.badge-r{background:var(--red-bg);color:#991b1b}
+.opp-tag{display:inline-flex;align-items:center;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:500;margin:3px;cursor:pointer;background:#ede9fe;color:#4c1d95;border:none;font-family:inherit}
+.opp-tag.sel{background:#4f46e5;color:#fff}
+.f{margin-bottom:14px}
+.f label{display:block;font-size:12px;color:var(--mut);margin-bottom:6px;font-weight:500}
+.f input,.f textarea{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--bor);background:var(--bg);color:var(--txt);font-size:16px;font-family:inherit;outline:none;-webkit-appearance:none}
+.f textarea{resize:none;min-height:80px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-row{display:flex;gap:10px;margin-top:8px}
+.btn{flex:1;padding:14px;border-radius:12px;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;border:1px solid var(--bor);background:var(--bg);color:var(--mut)}
+.btn-p{background:#0a0a0f;color:var(--acc);border-color:transparent}
+.lp{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
+.lc{background:var(--card);border-radius:20px;padding:28px 24px;width:100%;max-width:360px;border:1px solid var(--bor)}
+.ub{width:100%;display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border:1px solid var(--bor);border-radius:12px;cursor:pointer;margin-bottom:8px;color:var(--txt);font-family:inherit;text-align:left}
+.logout{background:transparent;border:1px solid #374151;color:#9ca3af;font-size:11px;padding:6px 12px;border-radius:20px;cursor:pointer;font-family:inherit}
+.empty{text-align:center;padding:48px 20px;color:var(--mut);font-size:14px;line-height:1.8}
+.opp-stat{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6}
+.opp-stat:last-child{border-bottom:none}
+.admin-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}
+.admin-row:last-child{border-bottom:none}
+.tag-row{display:flex;gap:8px;margin-top:8px}
+.tag-row input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--bor);background:var(--bg);color:var(--txt);font-size:15px;font-family:inherit;outline:none}
+.tag-row button{padding:10px 14px;border-radius:10px;border:1px solid var(--bor);background:var(--card);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const USERS=[
+  {id:1,name:"Alex",avatar:"A",role:"user",pw:"1234"},
+  {id:2,name:"Brian",avatar:"B",role:"user",pw:"1234"},
+  {id:3,name:"Cindy",avatar:"C",role:"user",pw:"1234"},
+  {id:99,name:"Admin",avatar:"★",role:"admin",pw:"admin"},
+];
+let SESSIONS=[
+  {id:1,userId:1,date:"2026-03-01",venue:"Brian家",buyin:3000,cashout:4500,hours:4,notes:"",opponents:["Brian","Cindy"]},
+  {id:2,userId:1,date:"2026-03-08",venue:"線上",buyin:2000,cashout:1200,hours:3,notes:"牌差",opponents:["Brian"]},
+  {id:3,userId:1,date:"2026-03-15",venue:"Alex家",buyin:3000,cashout:5500,hours:5,notes:"很順",opponents:["Cindy"]},
+  {id:4,userId:2,date:"2026-03-01",venue:"Brian家",buyin:3000,cashout:2000,hours:4,notes:"",opponents:["Alex","Cindy"]},
+  {id:5,userId:2,date:"2026-03-12",venue:"線上",buyin:1500,cashout:3000,hours:2,notes:"",opponents:[]},
+  {id:6,userId:3,date:"2026-03-01",venue:"Brian家",buyin:3000,cashout:4000,hours:4,notes:"",opponents:["Alex","Brian"]},
+];
+let me=null,tab="dash",addOpps=[],selId=null;
+const pnl=s=>s.cashout-s.buyin;
+const fmt=n=>(n>=0?"+":"")+n.toLocaleString();
+const mine=()=>SESSIONS.filter(s=>s.userId===me.id);
+const totalPnl=ss=>ss.reduce((a,s)=>a+pnl(s),0);
+const winRate=ss=>!ss.length?0:Math.round(ss.filter(s=>pnl(s)>0).length/ss.length*100);
+const roi=ss=>{const inv=ss.reduce((a,s)=>a+s.buyin,0);return !inv?0:Math.round(totalPnl(ss)/inv*100)};
+function r(){document.getElementById("app").innerHTML=me?mainHTML():loginHTML();}
+
+function loginHTML(){return`<div class="lp"><div class="lc">
+  <div style="font-size:24px;font-weight:800;color:#c8a96e;margin-bottom:4px">♠ Poker Tracker</div>
+  <div style="font-size:14px;color:var(--mut);margin-bottom:24px">選擇帳號登入</div>
+  <div id="ulist">${USERS.map(u=>`<button class="ub" onclick="sel(${u.id})">
+    <div class="av ${u.role==='admin'?'gold':''}">${u.avatar}</div>
+    <span style="flex:1;font-size:15px;font-weight:600">${u.name}</span>
+    <span style="font-size:11px;color:var(--mut)">${u.role==='admin'?'ADMIN':'PLAYER'}</span>
+  </button>`).join('')}</div>
+  <div id="pwarea" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:12px">
+      <div class="av" id="selav"></div>
+      <span style="font-weight:600;flex:1" id="selnm"></span>
+      <span style="font-size:13px;color:var(--mut);cursor:pointer" onclick="back()">換人</span>
+    </div>
+    <div class="f"><label>密碼</label><input type="password" id="pw" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')login()"></div>
+    <div style="color:var(--red);font-size:13px;margin-bottom:10px;display:none" id="pwerr">密碼錯誤，請再試一次</div>
+    <button class="btn btn-p" style="width:100%;margin-top:4px" onclick="login()">登入</button>
+    <div style="font-size:11px;color:var(--sub);text-align:center;margin-top:12px">玩家密碼 1234 · Admin 密碼 admin</div>
+  </div>
+</div></div>`;}
+
+function sel(id){selId=id;const u=USERS.find(u=>u.id===id);
+  document.getElementById("ulist").style.display="none";
+  document.getElementById("pwarea").style.display="block";
+  document.getElementById("selav").textContent=u.avatar;
+  document.getElementById("selav").className="av "+(u.role==="admin"?"gold":"");
+  document.getElementById("selnm").textContent=u.name;
+  setTimeout(()=>document.getElementById("pw").focus(),50);}
+function back(){document.getElementById("ulist").style.display="";document.getElementById("pwarea").style.display="none";document.getElementById("pwerr").style.display="none";}
+function login(){const u=USERS.find(u=>u.id===selId);
+  if(u&&u.pw===document.getElementById("pw").value){me=u;tab=me.role==="admin"?"overview":"dash";r();}
+  else{document.getElementById("pwerr").style.display="block";}}
+function logout(){me=null;r();}
+
+function mainHTML(){return me.role==="admin"?adminHTML():userHTML();}
+
+function userHTML(){
+  const m=mine(),sorted=[...m].sort((a,b)=>b.date.localeCompare(a.date));
+  const tp=totalPnl(m),wr=winRate(m),r2=roi(m);
+  const navs=["dash","history","opps"];
+  const navlbs=["總覽","記錄","對手"];
+  return`<div class="topbar">
+    <div><div class="logo">♠ ${me.name}</div><div class="logo-sub">POKER TRACKER</div></div>
+    <button class="logout" onclick="logout()">登出</button>
+  </div>
+  <div class="tabs">${navs.map((t,i)=>`<div class="tab ${tab===t?'on':''}" onclick="go('${t}')">${navlbs[i]}</div>`).join('')}</div>
+  <div class="content">
+    ${tab==="dash"?dashHTML(m,tp,wr,r2):""}
+    ${tab==="history"?historyHTML(sorted):""}
+    ${tab==="opps"?oppsHTML(m):""}
+    ${tab==="add"?addHTML():""}
+  </div>
+  ${tab!=="add"?`<div class="fab"><button class="fab-btn" onclick="go('add')">+ 新增記錄</button></div>`:""}`;
+}
+
+function dashHTML(m,tp,wr,r2){
+  return`<div class="stat-grid">
+    <div class="stat"><div class="sl">累計盈虧</div><div class="sv ${tp>=0?'pos':'neg'}">${fmt(tp)}</div></div>
+    <div class="stat"><div class="sl">勝率</div><div class="sv acc">${wr}%</div></div>
+    <div class="stat"><div class="sl">ROI</div><div class="sv ${r2>=0?'pos':'neg'}">${r2}%</div></div>
+    <div class="stat"><div class="sl">總場數</div><div class="sv neu">${m.length}</div></div>
+  </div>
+  ${m.length?`<div class="card"><div class="ct">每場盈虧</div>${barsHTML(m)}</div>`:'<div class="empty">還沒有任何記錄<br>點下方按鈕新增第一場</div>'}`;
+}
+
+function barsHTML(m){
+  const s2=[...m].sort((a,b)=>a.date.localeCompare(b.date));
+  const mx=Math.max(...s2.map(s=>Math.abs(pnl(s))),1);
+  return`<div class="bars">${s2.map(s=>{const v=pnl(s),h=Math.round(Math.abs(v)/mx*62);
+    return`<div class="bc" title="${fmt(v)}"><div class="bw"><div class="bar" style="height:${h}px;background:${v>=0?'#16a34a':'#dc2626'}"></div></div><div class="bl">${s.date.slice(5)}</div></div>`;}).join('')}</div>`;
+}
+
+function historyHTML(sorted){
+  if(!sorted.length)return`<div class="empty">還沒有任何記錄<br>點下方按鈕新增第一場</div>`;
+  return`<div class="card">${sorted.map(s=>{const p=pnl(s);return`<div class="srow">
+    <div><div class="sv2">${s.venue}</div><div class="sd">${s.date} · 買 $${s.buyin.toLocaleString()} · ${s.hours}h${s.notes?` · ${s.notes}`:''}</div></div>
+    <div class="spnl ${p>=0?'pos':'neg'}">${fmt(p)}</div>
+  </div>`;}).join('')}</div>`;}
+
+function oppsHTML(m){
+  const mp={};
+  m.forEach(s=>s.opponents.forEach(o=>{if(!mp[o])mp[o]={name:o,n:0,w:0};mp[o].n++;if(pnl(s)>0)mp[o].w++;}));
+  const st=Object.values(mp).sort((a,b)=>b.n-a.n);
+  if(!st.length)return`<div class="empty">還沒有對手記錄<br>新增記錄時加入對手</div>`;
+  return`<div class="card">${st.map(o=>`<div class="opp-stat">
+    <div><div class="sv2">${o.name}</div><div class="sd">同桌 ${o.n} 場</div></div>
+    <div style="text-align:right">
+      <span class="badge ${o.w/o.n>=.5?'badge-g':'badge-r'}">${o.w}勝/${o.n}場</span>
+      <div class="sd" style="margin-top:3px">${Math.round(o.w/o.n*100)}% 勝率</div>
+    </div>
+  </div>`).join('')}</div>`;}
+
+function addHTML(){
+  const others=USERS.filter(u=>u.id!==me.id&&u.role!=="admin");
+  return`<div class="card" style="margin-bottom:0">
+    <div style="font-size:17px;font-weight:700;margin-bottom:18px">新增一場記錄</div>
+    <div class="g2">
+      <div class="f"><label>日期</label><input type="date" id="fd" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="f"><label>時數</label><input type="number" id="fh" placeholder="4" inputmode="numeric"></div>
+    </div>
+    <div class="f"><label>地點</label><input type="text" id="fv" placeholder="Brian家、線上..."></div>
+    <div class="g2">
+      <div class="f"><label>買入 ($)</label><input type="number" id="fb" placeholder="3000" inputmode="numeric"></div>
+      <div class="f"><label>離場 ($)</label><input type="number" id="fc" placeholder="4500" inputmode="numeric"></div>
+    </div>
+    <div class="f"><label>對手</label>
+      <div id="otags" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">
+        ${others.map(u=>`<button class="opp-tag" id="ot${u.id}" onclick="tog('${u.name}',this)">${u.name}</button>`).join('')}
+      </div>
+      <div class="tag-row">
+        <input type="text" id="oi" placeholder="其他對手名字">
+        <button onclick="addOpp()">加入</button>
+      </div>
+    </div>
+    <div class="f"><label>備註</label><textarea id="fn" placeholder="任何想記錄的..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn" onclick="go('dash')">取消</button>
+      <button class="btn btn-p" onclick="save()">儲存記錄</button>
+    </div>
+  </div>`;}
+
+function tog(name,el){
+  const i=addOpps.indexOf(name);
+  if(i>=0){addOpps.splice(i,1);el.classList.remove("sel");}
+  else{addOpps.push(name);el.classList.add("sel");}}
+
+function addOpp(){
+  const inp=document.getElementById("oi"),v=inp.value.trim();
+  if(!v||addOpps.includes(v))return;
+  addOpps.push(v);
+  const btn=document.createElement("button");
+  btn.className="opp-tag sel";btn.textContent=v+" ✕";
+  btn.onclick=()=>{const i=addOpps.indexOf(v);if(i>=0)addOpps.splice(i,1);btn.remove();};
+  document.getElementById("otags").appendChild(btn);
+  inp.value="";}
+
+function save(){
+  const venue=document.getElementById("fv").value.trim();
+  const buyin=+document.getElementById("fb").value;
+  const cashout=+document.getElementById("fc").value;
+  if(!venue||!buyin||!cashout){alert("請填入地點、買入金額、離場金額");return;}
+  const id=Math.max(...SESSIONS.map(s=>s.id),0)+1;
+  SESSIONS.push({id,userId:me.id,date:document.getElementById("fd").value,venue,buyin,cashout,hours:+document.getElementById("fh").value||0,notes:document.getElementById("fn").value.trim(),opponents:[...addOpps]});
+  addOpps=[];go("history");}
+
+function adminHTML(){
+  const normal=USERS.filter(u=>u.role!=="admin");
+  const navs=["overview","players","report"];
+  const navlbs=["總覽","玩家","報表"];
+  return`<div class="topbar">
+    <div><div class="logo">♠ 管理後台</div><div class="logo-sub">ADMIN</div></div>
+    <button class="logout" onclick="logout()">登出</button>
+  </div>
+  <div class="tabs">${navs.map((t,i)=>`<div class="tab ${tab===t?'on':''}" onclick="go('${t}')">${navlbs[i]}</div>`).join('')}</div>
+  <div class="content">
+    ${tab==="overview"?aOverview(normal):""}
+    ${tab==="players"?aPlayers(normal):""}
+    ${tab==="report"?aReport():""}
+  </div>`;}
+
+function aOverview(normal){
+  const flow=SESSIONS.reduce((a,s)=>a+s.buyin,0);
+  const mx=Math.max(...SESSIONS.map(s=>pnl(s)),0);
+  const ranked=[...normal].sort((a,b)=>totalPnl(SESSIONS.filter(s=>s.userId===b.id))-totalPnl(SESSIONS.filter(s=>s.userId===a.id)));
+  return`<div class="stat-grid">
+    <div class="stat"><div class="sl">玩家人數</div><div class="sv neu">${normal.length}</div></div>
+    <div class="stat"><div class="sl">總場次</div><div class="sv neu">${SESSIONS.length}</div></div>
+    <div class="stat"><div class="sl">資金流動</div><div class="sv acc">$${flow.toLocaleString()}</div></div>
+    <div class="stat"><div class="sl">最大單場盈</div><div class="sv pos">${fmt(mx)}</div></div>
+  </div>
+  <div class="card"><div class="ct">績效排名</div>
+    ${ranked.map((u,i)=>{const us=SESSIONS.filter(s=>s.userId===u.id);const tp=totalPnl(us);return`
+    <div class="admin-row">
+      <div style="font-size:12px;color:var(--sub);font-weight:700;width:18px">#${i+1}</div>
+      <div class="av">${u.avatar}</div>
+      <div style="flex:1"><div class="sv2">${u.name}</div><div class="sd">${us.length}場 · 勝率${winRate(us)}% · ROI ${roi(us)}%</div></div>
+      <div class="spnl ${tp>=0?'pos':'neg'}">${fmt(tp)}</div>
+    </div>`;}).join('')}
+  </div>`;}
+
+function aPlayers(normal){
+  return`<div class="card">${normal.map(u=>{const us=SESSIONS.filter(s=>s.userId===u.id);const tp=totalPnl(us);return`
+    <div class="admin-row">
+      <div class="av">${u.avatar}</div>
+      <div style="flex:1"><div class="sv2">${u.name}</div><div class="sd">${us.length}場 · 勝率${winRate(us)}% · ROI ${roi(us)}%</div></div>
+      <div class="spnl ${tp>=0?'pos':'neg'}">${fmt(tp)}</div>
+    </div>`;}).join('')}</div>`;}
+
+function aReport(){
+  const sorted=[...SESSIONS].sort((a,b)=>b.date.localeCompare(a.date));
+  return`<div class="card">${sorted.map(s=>{const u=USERS.find(u=>u.id===s.userId);const p=pnl(s);return`
+    <div class="srow">
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+          <div class="av" style="width:24px;height:24px;font-size:9px">${u?u.avatar:''}</div>
+          <span class="sv2">${u?u.name:''}</span>
+        </div>
+        <div class="sd">${s.date} · ${s.venue} · ${s.hours}h</div>
+        <div class="sd">買$${s.buyin.toLocaleString()} → $${s.cashout.toLocaleString()}</div>
+      </div>
+      <div class="spnl ${p>=0?'pos':'neg'}">${fmt(p)}</div>
+    </div>`;}).join('')}</div>`;}
+
+function go(t){if(t!=="add")addOpps=[];tab=t;r();}
+r();
+</script>
+</body>
+</html>
