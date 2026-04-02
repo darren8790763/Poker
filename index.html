@@ -51,7 +51,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .btn-p{background:#0a0a0f;color:var(--acc);border-color:transparent}
 .lp{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--bg)}
 .lc{background:var(--card);border-radius:20px;padding:28px 24px;width:100%;max-width:360px;border:1px solid var(--bor)}
-.ub{width:100%;display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border:1px solid var(--bor);border-radius:12px;cursor:pointer;margin-bottom:8px;color:var(--txt);font-family:inherit;text-align:left}
 .logout{background:transparent;border:1px solid #374151;color:#9ca3af;font-size:11px;padding:6px 12px;border-radius:20px;cursor:pointer;font-family:inherit}
 .empty{text-align:center;padding:48px 20px;color:var(--mut);font-size:14px;line-height:1.8}
 .opp-stat{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f3f4f6}
@@ -61,71 +60,120 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .tag-row{display:flex;gap:8px;margin-top:8px}
 .tag-row input{flex:1;padding:10px 12px;border-radius:10px;border:1px solid var(--bor);background:var(--bg);color:var(--txt);font-size:15px;font-family:inherit;outline:none}
 .tag-row button{padding:10px 14px;border-radius:10px;border:1px solid var(--bor);background:var(--card);color:var(--txt);font-size:14px;cursor:pointer;font-family:inherit}
+.err{color:var(--red);font-size:13px;margin-bottom:12px;display:none}
+.link-btn{background:none;border:none;color:#4f46e5;font-size:14px;cursor:pointer;font-family:inherit;text-decoration:underline;padding:0}
 </style>
 </head>
 <body>
 <div id="app"></div>
 <script>
-const USERS=[
-  {id:1,name:"Alex",avatar:"A",role:"user",pw:"1234"},
-  {id:2,name:"Brian",avatar:"B",role:"user",pw:"1234"},
-  {id:3,name:"Cindy",avatar:"C",role:"user",pw:"1234"},
-  {id:99,name:"Admin",avatar:"★",role:"admin",pw:"admin"},
-];
-let SESSIONS=[
-  {id:1,userId:1,date:"2026-03-01",venue:"Brian家",buyin:3000,cashout:4500,hours:4,notes:"",opponents:["Brian","Cindy"]},
-  {id:2,userId:1,date:"2026-03-08",venue:"線上",buyin:2000,cashout:1200,hours:3,notes:"牌差",opponents:["Brian"]},
-  {id:3,userId:1,date:"2026-03-15",venue:"Alex家",buyin:3000,cashout:5500,hours:5,notes:"很順",opponents:["Cindy"]},
-  {id:4,userId:2,date:"2026-03-01",venue:"Brian家",buyin:3000,cashout:2000,hours:4,notes:"",opponents:["Alex","Cindy"]},
-  {id:5,userId:2,date:"2026-03-12",venue:"線上",buyin:1500,cashout:3000,hours:2,notes:"",opponents:[]},
-  {id:6,userId:3,date:"2026-03-01",venue:"Brian家",buyin:3000,cashout:4000,hours:4,notes:"",opponents:["Alex","Brian"]},
-];
-let me=null,tab="dash",addOpps=[],selId=null;
+function getUsers(){try{return JSON.parse(localStorage.getItem('pt_users')||'[]');}catch{return[];}}
+function saveUsers(u){localStorage.setItem('pt_users',JSON.stringify(u));}
+function getSessions(){try{return JSON.parse(localStorage.getItem('pt_sessions')||'[]');}catch{return[];}}
+function saveSessions(s){localStorage.setItem('pt_sessions',JSON.stringify(s));}
+
+// 初始化 Admin
+(function(){
+  const users=getUsers();
+  if(!users.find(u=>u.role==='admin')){
+    users.push({id:99,name:"Admin",avatar:"★",role:"admin",pw:"admin"});
+    saveUsers(users);
+  }
+})();
+
+let me=null, tab="dash", addOpps=[], page="login";
+let SESSIONS=getSessions();
+
 const pnl=s=>s.cashout-s.buyin;
 const fmt=n=>(n>=0?"+":"")+n.toLocaleString();
 const mine=()=>SESSIONS.filter(s=>s.userId===me.id);
 const totalPnl=ss=>ss.reduce((a,s)=>a+pnl(s),0);
 const winRate=ss=>!ss.length?0:Math.round(ss.filter(s=>pnl(s)>0).length/ss.length*100);
 const roi=ss=>{const inv=ss.reduce((a,s)=>a+s.buyin,0);return !inv?0:Math.round(totalPnl(ss)/inv*100)};
-function r(){document.getElementById("app").innerHTML=me?mainHTML():loginHTML();}
 
-function loginHTML(){return`<div class="lp"><div class="lc">
-  <div style="font-size:24px;font-weight:800;color:#c8a96e;margin-bottom:4px">♠ Poker Tracker</div>
-  <div style="font-size:14px;color:var(--mut);margin-bottom:24px">選擇帳號登入</div>
-  <div id="ulist">${USERS.map(u=>`<button class="ub" onclick="sel(${u.id})">
-    <div class="av ${u.role==='admin'?'gold':''}">${u.avatar}</div>
-    <span style="flex:1;font-size:15px;font-weight:600">${u.name}</span>
-    <span style="font-size:11px;color:var(--mut)">${u.role==='admin'?'ADMIN':'PLAYER'}</span>
-  </button>`).join('')}</div>
-  <div id="pwarea" style="display:none">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px;background:var(--bg);border-radius:12px">
-      <div class="av" id="selav"></div>
-      <span style="font-weight:600;flex:1" id="selnm"></span>
-      <span style="font-size:13px;color:var(--mut);cursor:pointer" onclick="back()">換人</span>
+function r(){
+  const app=document.getElementById("app");
+  if(me) app.innerHTML=mainHTML();
+  else if(page==="register") app.innerHTML=registerHTML();
+  else app.innerHTML=loginHTML();
+}
+
+// ── 登入頁 ──
+function loginHTML(){
+  return`<div class="lp"><div class="lc">
+    <div style="font-size:28px;font-weight:800;color:#c8a96e;margin-bottom:6px">♠ Poker Tracker</div>
+    <div style="font-size:14px;color:var(--mut);margin-bottom:24px">登入你的帳號</div>
+    <div class="f"><label>帳號名稱</label><input type="text" id="lname" placeholder="輸入帳號" autocomplete="username" onkeydown="if(event.key==='Enter')login()"></div>
+    <div class="f"><label>密碼</label><input type="password" id="lpw" placeholder="輸入密碼" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()"></div>
+    <div class="err" id="lerr">帳號或密碼錯誤，請再試一次</div>
+    <button class="btn btn-p" style="width:100%;margin-bottom:16px" onclick="login()">登入</button>
+    <div style="text-align:center;font-size:14px;color:var(--mut)">還沒有帳號？
+      <button class="link-btn" onclick="goPage('register')">立即註冊</button>
     </div>
-    <div class="f"><label>密碼</label><input type="password" id="pw" placeholder="輸入密碼" onkeydown="if(event.key==='Enter')login()"></div>
-    <div style="color:var(--red);font-size:13px;margin-bottom:10px;display:none" id="pwerr">密碼錯誤，請再試一次</div>
-    <button class="btn btn-p" style="width:100%;margin-top:4px" onclick="login()">登入</button>
-    <div style="font-size:11px;color:var(--sub);text-align:center;margin-top:12px">玩家密碼 1234 · Admin 密碼 admin</div>
-  </div>
-</div></div>`;}
+  </div></div>`;
+}
 
-function sel(id){selId=id;const u=USERS.find(u=>u.id===id);
-  document.getElementById("ulist").style.display="none";
-  document.getElementById("pwarea").style.display="block";
-  document.getElementById("selav").textContent=u.avatar;
-  document.getElementById("selav").className="av "+(u.role==="admin"?"gold":"");
-  document.getElementById("selnm").textContent=u.name;
-  setTimeout(()=>document.getElementById("pw").focus(),50);}
-function back(){document.getElementById("ulist").style.display="";document.getElementById("pwarea").style.display="none";document.getElementById("pwerr").style.display="none";}
-function login(){const u=USERS.find(u=>u.id===selId);
-  if(u&&u.pw===document.getElementById("pw").value){me=u;tab=me.role==="admin"?"overview":"dash";r();}
-  else{document.getElementById("pwerr").style.display="block";}}
-function logout(){me=null;r();}
+function login(){
+  const name=document.getElementById("lname").value.trim();
+  const pw=document.getElementById("lpw").value;
+  const users=getUsers();
+  const u=users.find(u=>u.name===name&&u.pw===pw);
+  if(u){me=u;tab=me.role==="admin"?"overview":"dash";r();}
+  else{document.getElementById("lerr").style.display="block";}
+}
 
+// ── 註冊頁 ──
+function registerHTML(){
+  return`<div class="lp"><div class="lc">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
+      <button onclick="goPage('login')" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--mut);line-height:1">←</button>
+      <div>
+        <div style="font-size:22px;font-weight:800;color:#c8a96e">建立帳號</div>
+        <div style="font-size:13px;color:var(--mut)">加入 Poker Tracker</div>
+      </div>
+    </div>
+    <div class="f"><label>帳號名稱</label><input type="text" id="rname" placeholder="你的名字或暱稱" autocomplete="username"></div>
+    <div class="f"><label>密碼</label><input type="password" id="rpw" placeholder="設定密碼（至少 4 位）" autocomplete="new-password"></div>
+    <div class="f"><label>確認密碼</label><input type="password" id="rpw2" placeholder="再輸入一次密碼" autocomplete="new-password" onkeydown="if(event.key==='Enter')register()"></div>
+    <div class="err" id="rerr"></div>
+    <button class="btn btn-p" style="width:100%;margin-bottom:16px" onclick="register()">註冊</button>
+    <div style="text-align:center;font-size:14px;color:var(--mut)">已經有帳號？
+      <button class="link-btn" onclick="goPage('login')">回到登入</button>
+    </div>
+  </div></div>`;
+}
+
+function register(){
+  const name=document.getElementById("rname").value.trim();
+  const pw=document.getElementById("rpw").value;
+  const pw2=document.getElementById("rpw2").value;
+  const err=document.getElementById("rerr");
+  err.style.display="none";
+  if(!name){err.textContent="請輸入帳號名稱";err.style.display="block";return;}
+  if(name.length<2){err.textContent="帳號至少需要 2 個字";err.style.display="block";return;}
+  if(!pw){err.textContent="請設定密碼";err.style.display="block";return;}
+  if(pw.length<4){err.textContent="密碼至少需要 4 個字元";err.style.display="block";return;}
+  if(pw!==pw2){err.textContent="兩次密碼不一致，請確認";err.style.display="block";return;}
+  const users=getUsers();
+  if(users.find(u=>u.name===name)){err.textContent="此帳號名稱已被使用";err.style.display="block";return;}
+  const id=Date.now();
+  const avatar=name[0].toUpperCase();
+  const newUser={id,name,avatar,role:"user",pw};
+  users.push(newUser);
+  saveUsers(users);
+  me=newUser;
+  tab="dash";
+  r();
+}
+
+function goPage(p){page=p;r();}
+function logout(){me=null;page="login";r();}
+
+// ── 主畫面 ──
 function mainHTML(){return me.role==="admin"?adminHTML():userHTML();}
 
 function userHTML(){
+  SESSIONS=getSessions();
   const m=mine(),sorted=[...m].sort((a,b)=>b.date.localeCompare(a.date));
   const tp=totalPnl(m),wr=winRate(m),r2=roi(m);
   const navs=["dash","history","opps"];
@@ -182,7 +230,7 @@ function oppsHTML(m){
   </div>`).join('')}</div>`;}
 
 function addHTML(){
-  const others=USERS.filter(u=>u.id!==me.id&&u.role!=="admin");
+  const users=getUsers().filter(u=>u.id!==me.id&&u.role!=="admin");
   return`<div class="card" style="margin-bottom:0">
     <div style="font-size:17px;font-weight:700;margin-bottom:18px">新增一場記錄</div>
     <div class="g2">
@@ -196,7 +244,7 @@ function addHTML(){
     </div>
     <div class="f"><label>對手</label>
       <div id="otags" style="display:flex;flex-wrap:wrap;gap:2px;margin-bottom:4px">
-        ${others.map(u=>`<button class="opp-tag" id="ot${u.id}" onclick="tog('${u.name}',this)">${u.name}</button>`).join('')}
+        ${users.map(u=>`<button class="opp-tag" id="ot${u.id}" onclick="tog('${u.name}',this)">${u.name}</button>`).join('')}
       </div>
       <div class="tag-row">
         <input type="text" id="oi" placeholder="其他對手名字">
@@ -230,12 +278,16 @@ function save(){
   const buyin=+document.getElementById("fb").value;
   const cashout=+document.getElementById("fc").value;
   if(!venue||!buyin||!cashout){alert("請填入地點、買入金額、離場金額");return;}
-  const id=Math.max(...SESSIONS.map(s=>s.id),0)+1;
+  SESSIONS=getSessions();
+  const id=Date.now();
   SESSIONS.push({id,userId:me.id,date:document.getElementById("fd").value,venue,buyin,cashout,hours:+document.getElementById("fh").value||0,notes:document.getElementById("fn").value.trim(),opponents:[...addOpps]});
+  saveSessions(SESSIONS);
   addOpps=[];go("history");}
 
+// ── Admin ──
 function adminHTML(){
-  const normal=USERS.filter(u=>u.role!=="admin");
+  SESSIONS=getSessions();
+  const users=getUsers().filter(u=>u.role!=="admin");
   const navs=["overview","players","report"];
   const navlbs=["總覽","玩家","報表"];
   return`<div class="topbar">
@@ -244,14 +296,14 @@ function adminHTML(){
   </div>
   <div class="tabs">${navs.map((t,i)=>`<div class="tab ${tab===t?'on':''}" onclick="go('${t}')">${navlbs[i]}</div>`).join('')}</div>
   <div class="content">
-    ${tab==="overview"?aOverview(normal):""}
-    ${tab==="players"?aPlayers(normal):""}
+    ${tab==="overview"?aOverview(users):""}
+    ${tab==="players"?aPlayers(users):""}
     ${tab==="report"?aReport():""}
   </div>`;}
 
 function aOverview(normal){
   const flow=SESSIONS.reduce((a,s)=>a+s.buyin,0);
-  const mx=Math.max(...SESSIONS.map(s=>pnl(s)),0);
+  const mx=SESSIONS.length?Math.max(...SESSIONS.map(s=>pnl(s))):0;
   const ranked=[...normal].sort((a,b)=>totalPnl(SESSIONS.filter(s=>s.userId===b.id))-totalPnl(SESSIONS.filter(s=>s.userId===a.id)));
   return`<div class="stat-grid">
     <div class="stat"><div class="sl">玩家人數</div><div class="sv neu">${normal.length}</div></div>
@@ -260,26 +312,27 @@ function aOverview(normal){
     <div class="stat"><div class="sl">最大單場盈</div><div class="sv pos">${fmt(mx)}</div></div>
   </div>
   <div class="card"><div class="ct">績效排名</div>
-    ${ranked.map((u,i)=>{const us=SESSIONS.filter(s=>s.userId===u.id);const tp=totalPnl(us);return`
+    ${ranked.length?ranked.map((u,i)=>{const us=SESSIONS.filter(s=>s.userId===u.id);const tp=totalPnl(us);return`
     <div class="admin-row">
       <div style="font-size:12px;color:var(--sub);font-weight:700;width:18px">#${i+1}</div>
       <div class="av">${u.avatar}</div>
       <div style="flex:1"><div class="sv2">${u.name}</div><div class="sd">${us.length}場 · 勝率${winRate(us)}% · ROI ${roi(us)}%</div></div>
       <div class="spnl ${tp>=0?'pos':'neg'}">${fmt(tp)}</div>
-    </div>`;}).join('')}
+    </div>`;}).join(''):'<div class="empty">還沒有玩家</div>'}
   </div>`;}
 
 function aPlayers(normal){
-  return`<div class="card">${normal.map(u=>{const us=SESSIONS.filter(s=>s.userId===u.id);const tp=totalPnl(us);return`
+  return`<div class="card">${normal.length?normal.map(u=>{const us=SESSIONS.filter(s=>s.userId===u.id);const tp=totalPnl(us);return`
     <div class="admin-row">
       <div class="av">${u.avatar}</div>
       <div style="flex:1"><div class="sv2">${u.name}</div><div class="sd">${us.length}場 · 勝率${winRate(us)}% · ROI ${roi(us)}%</div></div>
       <div class="spnl ${tp>=0?'pos':'neg'}">${fmt(tp)}</div>
-    </div>`;}).join('')}</div>`;}
+    </div>`;}).join(''):'<div class="empty">還沒有玩家</div>'}</div>`;}
 
 function aReport(){
+  const users=getUsers();
   const sorted=[...SESSIONS].sort((a,b)=>b.date.localeCompare(a.date));
-  return`<div class="card">${sorted.map(s=>{const u=USERS.find(u=>u.id===s.userId);const p=pnl(s);return`
+  return`<div class="card">${sorted.length?sorted.map(s=>{const u=users.find(u=>u.id===s.userId);const p=pnl(s);return`
     <div class="srow">
       <div>
         <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
@@ -290,7 +343,7 @@ function aReport(){
         <div class="sd">買$${s.buyin.toLocaleString()} → $${s.cashout.toLocaleString()}</div>
       </div>
       <div class="spnl ${p>=0?'pos':'neg'}">${fmt(p)}</div>
-    </div>`;}).join('')}</div>`;}
+    </div>`;}).join(''):'<div class="empty">還沒有記錄</div>'}</div>`;}
 
 function go(t){if(t!=="add")addOpps=[];tab=t;r();}
 r();
